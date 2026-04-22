@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inspira Studio — IA para Negócios</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;overflow-x:hidden}
+html{scrollbar-width:thin;scrollbar-color:rgba(107,37,224,.4) transparent}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(107,37,224,.4);border-radius:2px}
+:root{
+  --p1:#3A10A8;--p2:#6B25E0;--p3:#8B38F5;--p4:#AA52FF;--p5:#C87DFF;
+  --gold:#FFD060;--green:#22C55E;--red:#FF4444;
+  --text:#EEE6FF;--muted:rgba(238,230,255,.58);--bg:#05010F;
+}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);cursor:none}
+#scroller{height:500vh;position:relative;z-index:0}
+#vp{position:fixed;inset:0;overflow:hidden}
+canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
+#gnd{
+  position:absolute;bottom:0;left:0;width:100%;height:20vh;z-index:30;
+  background:linear-gradient(to bottom,#0B0328 0%,#060118 50%,#030010 100%);
+  border-top:1.5px solid rgba(108,38,220,.4);pointer-events:none
+}
+#scene{
+  position:absolute;top:0;left:0;display:flex;width:500vw;height:100vh;
+  will-change:transform;z-index:40
+}
+.gs{
+  width:100vw;height:100vh;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;padding-bottom:18vh
+}
+
+/* ── PANEL ── */
+.panel{
+  position:relative;background:rgba(5,1,15,.86);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(107,37,224,.32);
+  padding:36px 48px;max-width:1020px;width:95%;
+  max-height:75vh;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:rgba(107,37,224,.4) transparent
+}
+.panel::-webkit-scrollbar{width:3px}
+.panel::-webkit-scrollbar-thumb{background:rgba(107,37,224,.4)}
+.panel::before,.panel::after,.pc::before,.pc::after{
+  content:'';position:absolute;width:18px;height:18px;
+  border-color:var(--p3);border-style:solid;pointer-events:none
+}
+.panel::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.panel::after{top:-1px;right:-1px;border-width:2px 2px 0 0}
+.pc::before{bottom:-1px;left:-1px;border-width:0 0 2px 2px}
+.pc::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+
+/* ── TYPOGRAPHY ── */
+.tag{
+  font-family:'Press Start 2P',monospace;font-size:10px;
+  color:var(--p4);letter-spacing:3px;margin-bottom:14px;opacity:.85
+}
+h1{
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(32px,5.5vw,72px);color:var(--p4);
+  letter-spacing:3px;line-height:1.45;margin-bottom:6px;
+  text-shadow:0 0 40px var(--p2),0 0 80px rgba(107,37,224,.35)
+}
+h2{
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(16px,2.2vw,28px);color:var(--text);
+  line-height:1.55;margin-bottom:12px
+}
+.sub{
+  font-family:'Press Start 2P',monospace;font-size:clamp(9px,1vw,13px);
+  color:var(--gold);letter-spacing:4px;margin-bottom:16px
+}
+p{color:var(--muted);line-height:1.82;font-size:clamp(14px,1.2vw,17px);margin-bottom:12px}
+.divider{width:52px;height:3px;background:var(--p3);box-shadow:0 0 9px var(--p3);margin:12px 0}
+.studio-word{
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(10px,1.5vw,18px);color:var(--gold);
+  letter-spacing:9px;margin-bottom:26px;margin-top:4px;
+  text-shadow:0 0 18px rgba(255,208,96,.5)
+}
+.scroll-hint{
+  font-family:'Press Start 2P',monospace;font-size:9px;
+  color:var(--muted);letter-spacing:2px;
+  animation:blink 1.6s step-end infinite;margin-top:26px;display:block
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── HERO GRID ── */
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center;margin:18px 0}
+.hero-left{text-align:left}
+.hero-pillars{display:flex;flex-direction:column;gap:12px}
+.pillar{
+  background:rgba(75,24,192,.12);border:1px solid rgba(107,37,224,.3);
+  padding:14px 18px;display:flex;align-items:center;gap:14px;transition:all .3s
+}
+.pillar:hover{border-color:var(--p4);background:rgba(107,37,224,.18);transform:translateX(4px)}
+.pillar-icon{font-size:22px;flex-shrink:0}
+.pillar-text{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text);line-height:1.7}
+.pillar-desc{font-size:12px;color:var(--muted);margin-top:4px;font-family:'Outfit',sans-serif;font-size:13px}
+.hero-tags{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.htag{
+  font-family:'Press Start 2P',monospace;font-size:7px;
+  border:1px solid rgba(107,37,224,.4);padding:6px 12px;
+  color:var(--p5);letter-spacing:1px
+}
+
+/* ── PLANS ── */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.plan{
+  background:rgba(75,24,192,.1);border:1.5px solid rgba(107,37,224,.38);
+  padding:20px 16px;position:relative;transition:all .3s
+}
+.plan:hover{
+  border-color:var(--p4);background:rgba(107,37,224,.2);
+  transform:translateY(-5px);box-shadow:0 8px 35px rgba(139,56,245,.28)
+}
+.plan.feat{
+  border-color:var(--p4);background:rgba(107,37,224,.18);
+  box-shadow:0 0 22px rgba(139,56,245,.22)
+}
+.pname{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--p4);letter-spacing:1px;margin-bottom:10px}
+.pprice{font-family:'Press Start 2P',monospace;font-size:20px;color:var(--text);margin-bottom:2px;text-shadow:0 0 16px var(--p3)}
+.pmo{font-size:11px;color:var(--muted);margin-bottom:12px}
+.phook{font-size:11px;color:var(--p5);margin-bottom:10px;font-style:italic;line-height:1.5}
+.plist{list-style:none;font-size:11px;color:var(--muted);line-height:2.4;text-align:left}
+.plist li.ok::before{content:'✓ ';color:var(--green)}
+.plist li.no{color:rgba(238,230,255,.3)}
+.plist li.no::before{content:'✗ ';color:var(--red)}
+.pideal{
+  font-size:11px;color:var(--gold);margin-top:12px;
+  padding-top:10px;border-top:1px solid rgba(107,37,224,.25);
+  font-style:italic;line-height:1.5
+}
+
+/* ── ADICIONAL ── */
+.adicional{
+  background:rgba(255,208,96,.06);border:1.5px solid rgba(255,208,96,.35);
+  padding:20px 24px;margin-top:12px;display:grid;
+  grid-template-columns:1fr 2fr;gap:20px;align-items:center
+}
+.adic-badge{text-align:center}
+.adic-price{font-family:'Press Start 2P',monospace;font-size:22px;color:var(--gold);text-shadow:0 0 18px rgba(255,208,96,.5)}
+.adic-mo{font-size:11px;color:rgba(255,208,96,.6);margin-top:3px}
+.adic-tag{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gold);letter-spacing:2px;margin-bottom:8px;opacity:.8}
+.adic-title{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold);margin-bottom:10px;line-height:1.6}
+.adic-list{list-style:none;font-size:12px;color:var(--muted);line-height:2.3}
+.adic-list li::before{content:'✦ ';color:var(--gold)}
+.adic-ideal{font-size:12px;color:rgba(255,208,96,.7);margin-top:8px;font-style:italic}
+
+/* ── RESUMO RÁPIDO ── */
+.resumo{display:flex;gap:10px;margin-top:12px;justify-content:center}
+.ritem{
+  flex:1;text-align:center;
+  background:rgba(107,37,224,.1);border:1px solid rgba(107,37,224,.3);
+  padding:12px 8px;transition:all .3s
+}
+.ritem:hover{border-color:var(--p4);background:rgba(107,37,224,.2)}
+.ritem-num{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--p4);margin-bottom:6px}
+.ritem-verb{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--text)}
+
+/* ── BADGE ── */
+.badge{
+  display:inline-block;
+  background:linear-gradient(135deg,var(--p1),var(--p3));
+  padding:10px 30px;font-family:'Press Start 2P',monospace;
+  font-size:28px;color:#fff;
+  box-shadow:0 0 30px rgba(139,56,245,.5);margin:14px 0 22px
+}
+.badge span{font-size:13px}
+
+/* ── FEATURE LIST ── */
+.flist{list-style:none;margin-bottom:18px;display:inline-block;text-align:left}
+.flist li{padding:5px 0;font-size:14px;color:var(--muted)}
+.flist li::before{content:'▸ ';color:var(--p4)}
+
+/* ── SITE GRID ── */
+.sgrid{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.sc{
+  background:rgba(75,24,192,.1);border:1px solid rgba(139,56,245,.25);
+  padding:16px 12px;width:120px;text-align:center;font-size:24px;transition:all .3s
+}
+.sc:hover{border-color:var(--p4);transform:translateY(-3px)}
+.sct{font-family:'Press Start 2P',monospace;font-size:6.5px;color:var(--p5);line-height:2;margin-top:8px}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:9px;padding:14px 28px;
+  font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:1.5px;
+  text-decoration:none;cursor:pointer;border:none;transition:all .3s;line-height:1.4
+}
+.btn-p{background:linear-gradient(135deg,var(--p1),var(--p3));color:#fff;box-shadow:0 0 22px rgba(107,37,224,.38)}
+.btn-p:hover{box-shadow:0 0 44px rgba(139,56,245,.65);transform:translateY(-2px)}
+.btn-w{background:var(--green);color:#fff;box-shadow:0 0 28px rgba(34,197,94,.3)}
+.btn-w:hover{box-shadow:0 0 50px rgba(34,197,94,.55);transform:translateY(-2px)}
+.btn-sm{font-size:8px;padding:11px 20px}
+
+/* ── CTA RINGS ── */
+.cta-ring{
+  position:absolute;border-radius:50%;border:1px solid rgba(107,37,224,.15);
+  top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;
+  animation:ring 4s ease-in-out infinite
+}
+@keyframes ring{
+  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.45}
+  50%{transform:translate(-50%,-50%) scale(1.09);opacity:.9}
+}
+
+/* ── NAVBAR ── */
+#nav{
+  position:absolute;top:0;left:0;right:0;z-index:100;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 38px;
+  background:linear-gradient(to bottom,rgba(5,1,15,.9),transparent)
+}
+.nlogo img{height:38px;width:auto;display:block;filter:brightness(1.1)}
+.nlinks{display:flex;gap:22px}
+.nlink{
+  font-family:'Press Start 2P',monospace;font-size:7px;
+  color:var(--muted);text-decoration:none;cursor:pointer;
+  transition:all .3s;letter-spacing:1px;border:none;background:none;padding:0
+}
+.nlink:hover,.nlink.act{color:var(--p4);text-shadow:0 0 8px var(--p3)}
+
+/* ── SIDE DOTS ── */
+#dots{
+  position:absolute;right:22px;top:50%;transform:translateY(-50%);
+  z-index:100;display:flex;flex-direction:column;gap:11px
+}
+.dot{
+  width:9px;height:9px;background:transparent;
+  border:2px solid rgba(107,37,224,.4);
+  cursor:pointer;transition:all .3s;display:block
+}
+.dot:hover,.dot.act{background:var(--p4);border-color:var(--p4);box-shadow:0 0 8px var(--p3)}
+
+/* ── PROGRESS BAR ── */
+#pgbar{
+  position:absolute;bottom:0;left:0;height:2px;width:0%;
+  background:linear-gradient(90deg,var(--p2),var(--p4));
+  box-shadow:0 0 7px var(--p3);z-index:100;transition:width .08s linear
+}
+
+/* ── OVERLAYS ── */
+#vgn{
+  position:absolute;inset:0;pointer-events:none;z-index:55;
+  background:radial-gradient(ellipse at center,transparent 48%,rgba(3,0,10,.65) 100%)
+}
+#scnl{
+  position:absolute;inset:0;pointer-events:none;z-index:56;
+  background:repeating-linear-gradient(to bottom,transparent,transparent 2px,rgba(0,0,0,.022) 2px,rgba(0,0,0,.022) 4px)
+}
+
+/* ── CURSOR ── */
+#cur{
+  position:fixed;width:10px;height:10px;background:var(--p4);
+  pointer-events:none;z-index:9999;image-rendering:pixelated;
+  transition:transform .12s,background .12s;transform:translate(-50%,-50%)
+}
+#cur.big{transform:translate(-50%,-50%) scale(2.2);background:var(--p5)}
+
+/* ── CONTACT INFO ── */
+.cinfo{
+  font-family:'Press Start 2P',monospace;font-size:7.5px;
+  color:var(--muted);line-height:3.2;margin-top:22px
+}
+.cinfo span{color:var(--p4)}
+
+/* ── FOOTER ── */
+.fnote{
+  font-family:'Press Start 2P',monospace;font-size:7px;
+  color:rgba(238,230,255,.2);
+  position:absolute;bottom:calc(20vh + 10px);left:50%;transform:translateX(-50%);
+  z-index:50;letter-spacing:1px;white-space:nowrap
+}
+
+/* ── DIVIDER LINE ── */
+.sep{width:100%;height:1px;background:rgba(107,37,224,.2);margin:12px 0}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .nlinks{display:none}
+  .panel{padding:22px 18px}
+  h1{font-size:26px}
+  .plans{grid-template-columns:1fr}
+  .adicional{grid-template-columns:1fr}
+  .adic-badge{text-align:left}
+  .sgrid{gap:7px}.sc{width:88px;padding:10px 6px;font-size:18px}
+  .badge{font-size:22px;padding:9px 20px}
+  .btn{font-size:8px;padding:12px 18px}
+  #dots{right:8px}
+  .hero-grid{grid-template-columns:1fr}
+  .hero-left{text-align:center}
+  .fnote{display:none}
+  .resumo{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<div id="scroller"></div>
+
+<div id="vp">
+  <div id="cur"></div>
+
+  <canvas id="csky" style="z-index:1"></canvas>
+  <canvas id="cstr" style="z-index:2"></canvas>
+  <canvas id="cmtn" style="z-index:3"></canvas>
+  <canvas id="ctb"  style="z-index:4"></canvas>
+  <canvas id="ctf"  style="z-index:5"></canvas>
+
+  <div id="gnd"></div>
+
+  <nav id="nav">
+    <div class="nlogo">
+      <img src="inspira.svg" alt="Inspira Studio">
+    </div>
+    <div class="nlinks">
+      <button class="nlink act" data-s="0">INÍCIO</button>
+      <button class="nlink" data-s="1">AGENTE IA</button>
+      <button class="nlink" data-s="2">RAVIS</button>
+      <button class="nlink" data-s="3">SITES</button>
+      <button class="nlink" data-s="4">CONTATO</button>
+    </div>
+  </nav>
+
+  <div id="scene">
+
+    <!-- ── S0: HERO ── -->
+    <section class="gs" id="s0">
+      <div class="panel pc">
+        <div class="tag">✦ &nbsp;BEM VINDO AO FUTURO DOS NEGÓCIOS</div>
+        <div class="hero-grid">
+          <div class="hero-left">
+            <h1>INSPIRA</h1>
+            <div class="studio-word">STUDIO</div>
+            <div class="divider"></div>
+            <p style="margin-top:12px">
+              Somos uma empresa focada em automação inteligente, criação de agentes de IA e presença digital estratégica para negócios.
+            </p>
+            <p>
+              Nosso objetivo é ajudar empresas a atender melhor, vender mais e crescer utilizando inteligência artificial de forma simples, acessível e eficiente.
+            </p>
+            <div class="hero-tags">
+              <span class="htag">AUTOMAÇÃO</span>
+              <span class="htag">AGENTES IA</span>
+              <span class="htag">PRESENÇA DIGITAL</span>
+            </div>
+            <a href="https://wa.me/5585991330192?text=Ol%C3%A1%21%20Quero%20saber%20mais%20sobre%20a%20Inspira%20Studio%20e%20como%20a%20IA%20pode%20transformar%20meu%20neg%C3%B3cio%21" target="_blank" class="btn btn-p" style="margin-top:20px">
+              <svg width="15" height="15" fill="white" viewBox="0 0 24 24"><path d="M11.95 0C5.354 0 0 5.354 0 11.95a11.9 11.9 0 001.508 5.785L0 24l6.455-1.694A11.9 11.9 0 0011.95 23.9C18.546 23.9 23.9 18.546 23.9 11.95 23.9 5.354 18.546 0 11.95 0zm0 21.808a9.856 9.856 0 01-5.024-1.375l-.36-.214-3.73.978.996-3.647-.235-.374A9.829 9.829 0 012.092 11.95c0-5.44 4.418-9.858 9.858-9.858 5.44 0 9.858 4.418 9.858 9.858 0 5.44-4.418 9.858-9.858 9.858z"/></svg>
+              QUERO SABER MAIS
+            </a>
+          </div>
+          <div class="hero-pillars">
+            <div class="pillar">
+              <div class="pillar-icon">🤖</div>
+              <div>
+                <div class="pillar-text">AGENTES DE IA</div>
+                <div class="pillar-desc">Agentes 100% customizados que atendem, vendem e qualificam leads no automático, 24h por dia.</div>
+              </div>
+            </div>
+            <div class="pillar">
+              <div class="pillar-icon">⚡</div>
+              <div>
+                <div class="pillar-text">NOSSO DIFERENCIAL</div>
+                <div class="pillar-desc">Diferente de soluções genéricas, nossos agentes realmente entendem o seu negócio e se comunicam como humanos.</div>
+              </div>
+            </div>
+            <div class="pillar">
+              <div class="pillar-icon">🎯</div>
+              <div>
+                <div class="pillar-text">MISSÃO</div>
+                <div class="pillar-desc">Ajudar negócios a crescer utilizando inteligência artificial de forma prática e acessível.</div>
+              </div>
+            </div>
+            <div class="pillar">
+              <div class="pillar-icon">🔥</div>
+              <div>
+                <div class="pillar-text">VISÃO</div>
+                <div class="pillar-desc">Ser referência em automação inteligente para pequenos e médios negócios no Brasil.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="scroll-hint" style="text-align:center;display:block">▼ &nbsp;ROLE PARA CONHECER NOSSAS SOLUÇÕES&nbsp; ▼</span>
+      </div>
+    </section>
+
+    <!-- ── S1: AGENTE IA ── -->
+    <section class="gs" id="s1">
+      <div class="panel pc">
+        <div class="tag">✦ &nbsp;SOLUÇÃO 01</div>
+        <h2>AGENTES DE IA</h2>
+        <div class="sub">PARA WHATSAPP E ATENDIMENTO DIGITAL</div>
+        <p style="margin-bottom:16px">Automatize o atendimento do seu negócio 24h por dia. Seu agente responde, qualifica leads e fecha vendas enquanto você foca no que importa.</p>
+
+        <div class="plans">
+          <!-- STARTER -->
+          <div class="plan">
+            <div class="pname">🟢 STARTER</div>
+            <div class="pprice">R$500</div>
+            <div class="pmo">por mês</div>
+            <div class="phook">Pra quem quer parar de perder cliente</div>
+            <ul class="plist">
+              <li class="ok">IA 100% customizada pro seu negócio</li>
+              <li class="ok">Atendimento automático 24h</li>
+              <li class="ok">Responde todos os clientes sem limite</li>
+              <li class="ok">Respostas básicas e apresentação de serviços</li>
+              <li class="no">Sem FAQ automatizado</li>
+              <li class="no">Sem relatórios</li>
+              <li class="no">Sem estratégia de vendas</li>
+            </ul>
+            <div class="pideal">💬 Ideal pra começar e organizar o atendimento</div>
+          </div>
+          <!-- PRO -->
+          <div class="plan feat">
+            <div class="pname" style="color:var(--gold)">🔵 PRO ★</div>
+            <div class="pprice">R$1.000</div>
+            <div class="pmo">por mês</div>
+            <div class="phook">Pra quem quer transformar atendimento em vendas</div>
+            <ul class="plist">
+              <li class="ok">Tudo do Starter</li>
+              <li class="ok">FAQ automatizado inteligente</li>
+              <li class="ok">Condução da conversa até a compra</li>
+              <li class="ok">Qualificação de leads</li>
+              <li class="ok">Personalização estratégica</li>
+              <li class="ok">Relatório básico de desempenho</li>
+            </ul>
+            <div class="pideal">💬 Ideal pra quem quer vender no automático</div>
+          </div>
+          <!-- ELITE -->
+          <div class="plan">
+            <div class="pname">🟣 ELITE</div>
+            <div class="pprice">R$1.500</div>
+            <div class="pmo">por mês</div>
+            <div class="phook">Pra quem quer escalar de verdade</div>
+            <ul class="plist">
+              <li class="ok">Tudo do Pro</li>
+              <li class="ok">CRM integrado</li>
+              <li class="ok">Dashboard com métricas detalhadas</li>
+              <li class="ok">Suporte prioritário</li>
+              <li class="ok">Estratégia de vendas avançada</li>
+              <li class="ok">Otimizações contínuas</li>
+            </ul>
+            <div class="pideal">💬 Ideal pra negócios que querem crescer sem limite</div>
+          </div>
+        </div>
+
+        <!-- ADICIONAL -->
+        <div class="adicional">
+          <div class="adic-badge">
+            <div style="font-size:28px;margin-bottom:6px">💎</div>
+            <div class="adic-price">R$200</div>
+            <div class="adic-mo">adicional único</div>
+          </div>
+          <div>
+            <div class="adic-tag">✦ ADICIONAL</div>
+            <div class="adic-title">AGENTE QUE ENTENDE ÁUDIOS E IMAGENS</div>
+            <ul class="adic-list">
+              <li>O cliente pode enviar áudio e o agente responde</li>
+              <li>O cliente pode enviar imagem e o agente analisa</li>
+            </ul>
+            <div class="adic-ideal">💬 Deixa o atendimento muito mais natural e completo</div>
+          </div>
+        </div>
+
+        <!-- RESUMO RÁPIDO -->
+        <div class="sep"></div>
+        <div class="tag" style="font-size:8px;margin-bottom:8px">⚡ RESUMO RÁPIDO</div>
+        <div class="resumo">
+          <div class="ritem">
+            <div class="ritem-num">STARTER</div>
+            <div class="ritem-verb" style="color:var(--green)">ATENDE</div>
+          </div>
+          <div class="ritem">
+            <div class="ritem-num">PRO</div>
+            <div class="ritem-verb" style="color:var(--gold)">VENDE</div>
+          </div>
+          <div class="ritem">
+            <div class="ritem-num">ELITE</div>
+            <div class="ritem-verb" style="color:var(--p4)">ESCALA</div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px">
+          <a href="https://wa.me/5585991330192?text=Ol%C3%A1%21%20Quero%20conhecer%20os%20planos%20de%20Agente%20de%20IA%20da%20Inspira%20Studio%21%20Pode%20me%20contar%20mais%3F" target="_blank" class="btn btn-p">
+            <svg width="15" height="15" fill="white" viewBox="0 0 24 24"><path d="M11.95 0C5.354 0 0 5.354 0 11.95a11.9 11.9 0 001.508 5.785L0 24l6.455-1.694A11.9 11.9 0 0011.95 23.9C18.546 23.9 23.9 18.546 23.9 11.95 23.9 5.354 18.546 0 11.95 0zm0 21.808a9.856 9.856 0 01-5.024-1.375l-.36-.214-3.73.978.996-3.647-.235-.374A9.829 9.829 0 012.092 11.95c0-5.44 4.418-9.858 9.858-9.858 5.44 0 9.858 4.418 9.858 9.858 0 5.44-4.418 9.858-9.858 9.858z"/></svg>
+            FALAR COM ESPECIALISTA
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── S2: RAVIS ── -->
+    <section class="gs" id="s2">
+      <div class="panel pc" style="text-align:center">
+        <div class="tag">✦ &nbsp;SOLUÇÃO 02</div>
+        <h2>RAVIS</h2>
+        <div class="sub">SEU CONSULTOR ESTRATÉGICO DE IA</div>
+        <div class="divider" style="margin:0 auto 18px"></div>
+        <p style="max-width:500px;margin:0 auto 16px;font-size:16px">
+          O RAVIS é seu consultor estratégico movido a Inteligência Artificial, pronto para analisar dados, sugerir ações e transformar decisões em resultados reais para o seu negócio.
+        </p>
+        <ul class="flist">
+          <li>Análise de mercado e concorrência em tempo real</li>
+          <li>Relatórios automatizados com IA</li>
+          <li>Estratégias de crescimento sob medida</li>
+          <li>Respostas inteligentes e consultoria 24h</li>
+          <li>Acesso direto pelo WhatsApp</li>
+        </ul>
+        <div><div class="badge">R$50<span> por mês</span></div></div>
+        <a href="https://wa.me/5585991330192?text=Ol%C3%A1%21%20Quero%20saber%20mais%20sobre%20o%20RAVIS%2C%20o%20consultor%20de%20IA%20da%20Inspira%20Studio%21" target="_blank" class="btn btn-p">
+          <svg width="15" height="15" fill="white" viewBox="0 0 24 24"><path d="M11.95 0C5.354 0 0 5.354 0 11.95a11.9 11.9 0 001.508 5.785L0 24l6.455-1.694A11.9 11.9 0 0011.95 23.9C18.546 23.9 23.9 18.546 23.9 11.95 23.9 5.354 18.546 0 11.95 0zm0 21.808a9.856 9.856 0 01-5.024-1.375l-.36-.214-3.73.978.996-3.647-.235-.374A9.829 9.829 0 012.092 11.95c0-5.44 4.418-9.858 9.858-9.858 5.44 0 9.858 4.418 9.858 9.858 0 5.44-4.418 9.858-9.858 9.858z"/></svg>
+          CONTRATAR O RAVIS
+        </a>
+      </div>
+    </section>
+
+    <!-- ── S3: SITES ── -->
+    <section class="gs" id="s3">
+      <div class="panel pc" style="text-align:center">
+        <div class="tag">✦ &nbsp;SOLUÇÃO 03</div>
+        <h2>CRIAÇÃO<br>DE SITES</h2>
+        <div class="divider" style="margin:12px auto"></div>
+        <p style="max-width:500px;margin:0 auto 16px;font-size:16px">
+          Sites que vendem, impressionam e convertem — desenvolvidos sob medida para o seu negócio, do landing page ao e-commerce completo. Cada projeto é único e recebe atenção total da nossa equipe.
+        </p>
+        <div class="sgrid">
+          <div class="sc">🏪<div class="sct">LANDING PAGE</div></div>
+          <div class="sc">🛒<div class="sct">E-COMMERCE</div></div>
+          <div class="sc">🏢<div class="sct">INSTITUCIONAL</div></div>
+          <div class="sc">⚙️<div class="sct">SISTEMAS WEB</div></div>
+        </div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:8.5px;color:var(--p4);letter-spacing:2px;margin:16px 0 22px">
+          VALOR SOB CONSULTA — CADA PROJETO É ÚNICO
+        </p>
+        <a href="https://wa.me/5585991330192?text=Ol%C3%A1%21%20Quero%20solicitar%20um%20or%C3%A7amento%20para%20cria%C3%A7%C3%A3o%20de%20site%20pela%20Inspira%20Studio%21" target="_blank" class="btn btn-p">
+          <svg width="15" height="15" fill="white" viewBox="0 0 24 24"><path d="M11.95 0C5.354 0 0 5.354 0 11.95a11.9 11.9 0 001.508 5.785L0 24l6.455-1.694A11.9 11.9 0 0011.95 23.9C18.546 23.9 23.9 18.546 23.9 11.95 23.9 5.354 18.546 0 11.95 0zm0 21.808a9.856 9.856 0 01-5.024-1.375l-.36-.214-3.73.978.996-3.647-.235-.374A9.829 9.829 0 012.092 11.95c0-5.44 4.418-9.858 9.858-9.858 5.44 0 9.858 4.418 9.858 9.858 0 5.44-4.418 9.858-9.858 9.858z"/></svg>
+          SOLICITAR ORÇAMENTO
+        </a>
+      </div>
+    </section>
+
+    <!-- ── S4: CTA ── -->
+    <section class="gs" id="s4">
+      <div class="cta-ring" style="width:380px;height:380px"></div>
+      <div class="cta-ring" style="width:600px;height:600px;animation-delay:-2s;border-color:rgba(107,37,224,.07)"></div>
+      <div class="panel pc" style="text-align:center;position:relative;z-index:1">
+        <div class="tag">✦ &nbsp;COMECE AGORA</div>
+        <h2>PRONTO PARA<br>TRANSFORMAR<br>SEU NEGÓCIO?</h2>
+        <div class="divider" style="margin:14px auto"></div>
+        <p style="max-width:480px;margin:0 auto 10px;font-size:16px">
+          A Inspira Studio não vende apenas automação. Nós entregamos sistemas inteligentes que atendem, vendem e ajudam empresas a escalar.
+        </p>
+        <p style="max-width:480px;margin:0 auto 26px;font-size:15px">
+          Entre em contato agora e descubra qual solução é ideal para o seu negócio.
+        </p>
+        <a href="https://wa.me/5585991330192?text=Ol%C3%A1%21%20Estou%20pronto%20para%20transformar%20meu%20neg%C3%B3cio%20com%20IA.%20Quero%20come%C3%A7ar%20com%20a%20Inspira%20Studio%21" target="_blank" class="btn btn-w">
+          <svg width="17" height="17" fill="white" viewBox="0 0 24 24"><path d="M11.95 0C5.354 0 0 5.354 0 11.95a11.9 11.9 0 001.508 5.785L0 24l6.455-1.694A11.9 11.9 0 0011.95 23.9C18.546 23.9 23.9 18.546 23.9 11.95 23.9 5.354 18.546 0 11.95 0zm0 21.808a9.856 9.856 0 01-5.024-1.375l-.36-.214-3.73.978.996-3.647-.235-.374A9.829 9.829 0 012.092 11.95c0-5.44 4.418-9.858 9.858-9.858 5.44 0 9.858 4.418 9.858 9.858 0 5.44-4.418 9.858-9.858 9.858z"/></svg>
+          FALAR NO WHATSAPP AGORA
+        </a>
+        <div class="cinfo">
+          <div><span>✦</span> &nbsp;inspirastudio85@gmail.com</div>
+          <div><span>✦</span> &nbsp;Resposta rápida garantida</div>
+          <div><span>✦</span> &nbsp;Setup em 48 horas após contratação</div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- #scene -->
+
+  <div id="dots">
+    <div class="dot act" data-g="0" title="Início"></div>
+    <div class="dot" data-g="1" title="Agente IA"></div>
+    <div class="dot" data-g="2" title="RAVIS"></div>
+    <div class="dot" data-g="3" title="Sites"></div>
+    <div class="dot" data-g="4" title="Contato"></div>
+  </div>
+
+  <div id="pgbar"></div>
+  <div class="fnote">© 2026 INSPIRA STUDIO. TODOS OS DIREITOS RESERVADOS.</div>
+  <div id="vgn"></div>
+  <div id="scnl"></div>
+
+</div>
+
+<script>
+(()=>{
+'use strict';
+const W=window.innerWidth, H=window.innerHeight;
+const GY=Math.round(H*0.80);
+const NS=5;
+
+function mkCtx(id){const c=document.getElementById(id);c.width=W;c.height=H;return c.getContext('2d')}
+const SKY=mkCtx('csky'),STR=mkCtx('cstr'),MTN=mkCtx('cmtn'),TB=mkCtx('ctb'),TF=mkCtx('ctf');
+
+const sr=s=>{const x=Math.sin(s*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+
+/* ── WORLD DATA ── */
+const STARS=Array.from({length:300},(_,i)=>({
+  x:sr(i*7+1)*W*2.1,y:sr(i*13+2)*H*.85,
+  r:sr(i*19+3)*1.4+.3,b:sr(i*23+4)*.65+.25,
+  sp:sr(i*29+5)*.05+.01,ph:sr(i*31+6)*Math.PI*2
+}));
+const FF=Array.from({length:55},(_,i)=>({
+  wx:sr(i*41+1)*W*4.85,y:H*.46+sr(i*43+2)*H*.34,
+  sz:sr(i*47+3)*2.4+1.1,ph:sr(i*53+4)*Math.PI*2,
+  sp:sr(i*59+5)*.4+.12,col:sr(i*61+6)>.5?'170,82,255':'200,125,255'
+}));
+const mkMtns=(n,wr,hMin,hMax,seed)=>Array.from({length:n},(_,i)=>({
+  wx:sr(seed+i*7)*W*wr,w:sr(seed+i*11)*W*.22+W*.08,
+  h:sr(seed+i*13)*(hMax-hMin)+hMin
+}));
+const MTNS_BG=mkMtns(28,5.2,H*.16,H*.34,1);
+const MTNS_MG=mkMtns(20,5.2,H*.10,H*.20,200);
+const mkTrees=(n,wr,seed,big)=>Array.from({length:n},(_,i)=>({
+  wx:sr(seed+i*9)*W*wr,
+  h:big?sr(seed+i*11)*(H*.22)+H*.10:sr(seed+i*11)*(H*.14)+H*.07,
+  w:big?sr(seed+i*13)*38+22:sr(seed+i*13)*22+12
+}));
+const TREES_BG=mkTrees(55,5.2,400,true);
+const TREES_FG=mkTrees(38,5.2,600,false);
+
+/* ── DRAW HELPERS ── */
+function drawTree(ctx,x,y,h,w,alpha,dark){
+  if(alpha<=0||x<-w-2||x>W+w+2)return;
+  ctx.save();ctx.globalAlpha=alpha;
+  const tw=Math.max(2,w*.09);
+  ctx.fillStyle=dark?'#060014':'#0D0228';
+  ctx.fillRect(x-tw/2,y-h*.28,tw,h*.28);
+  for(let i=0;i<4;i++){
+    const t=i/3.5,lw=w*(1-t*.12),lh=h*.21,ly=y-h*.28-(h*.66)*t;
+    ctx.fillStyle=dark?`rgba(8,2,22,${.65+t*.22})`:`rgba(14,4,38,${.62+t*.22})`;
+    ctx.fillRect(x-lw/2,ly,lw,lh*.42);
+    ctx.fillRect(x-lw*.68/2,ly-lh*.24,lw*.68,lh*.34);
+    ctx.fillRect(x-lw*.36/2,ly-lh*.46,lw*.36,lh*.28);
+  }
+  ctx.restore();
+}
+function drawMtn(ctx,x,y,w,h,col,a){
+  if(x+w/2<-2||x-w/2>W+2)return;
+  ctx.save();ctx.globalAlpha=a;ctx.fillStyle=col;
+  ctx.beginPath();ctx.moveTo(x-w/2,y);ctx.lineTo(x,y-h);ctx.lineTo(x+w/2,y);ctx.fill();
+  ctx.restore();
+}
+
+/* ── STRUCTURES ── */
+const STRUCTS=[
+  {t:'castle',wx:W*.5},
+  {t:'camp',wx:W*.5+W*.53},
+  {t:'tower',wx:W*.5+W*1.06},
+  {t:'workshop',wx:W*.5+W*1.59},
+  {t:'gate',wx:W*.5+W*2.12},
+];
+
+function drawCastle(ctx,x,y){
+  if(x<-220||x>W+220)return;
+  const g=y;
+  ctx.fillStyle='#0D0328';
+  ctx.fillRect(x-70,g-95,140,95);ctx.fillRect(x-24,g-180,48,180);
+  ctx.fillRect(x-82,g-128,32,128);ctx.fillRect(x+50,g-128,32,128);
+  for(let i=0;i<4;i++)ctx.fillRect(x-24+i*18,g-196,11,18);
+  for(let i=0;i<3;i++){ctx.fillRect(x-82+i*14,g-142,9,15);ctx.fillRect(x+50+i*14,g-142,9,15)}
+  ctx.fillStyle='rgba(139,56,245,.95)';
+  ctx.fillRect(x-10,g-148,20,26);ctx.fillRect(x-66,g-108,14,18);ctx.fillRect(x+52,g-108,14,18);
+  const wg=(wx,wy,wr)=>{ctx.save();ctx.globalAlpha=.22;const g2=ctx.createRadialGradient(wx,wy,0,wx,wy,wr);g2.addColorStop(0,'rgba(139,56,245,1)');g2.addColorStop(1,'transparent');ctx.fillStyle=g2;ctx.fillRect(wx-wr,wy-wr,wr*2,wr*2);ctx.restore()};
+  wg(x,g-135,58);wg(x-59,g-99,28);wg(x+59,g-99,28);
+  ctx.fillStyle='#040010';ctx.fillRect(x-11,g-30,22,30);
+  ctx.beginPath();ctx.arc(x,g-30,11,Math.PI,0);ctx.fill();
+  ctx.fillStyle='#8B38F5';ctx.fillRect(x,g-198,2,28);
+  ctx.beginPath();ctx.moveTo(x+2,g-198);ctx.lineTo(x+18,g-190);ctx.lineTo(x+2,g-182);ctx.fill();
+}
+function drawCamp(ctx,x,y){
+  if(x<-260||x>W+260)return;
+  const g=y;
+  const tent=(tx,ty,s,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(tx,ty-s);ctx.lineTo(tx-s*.85,ty);ctx.lineTo(tx+s*.85,ty);ctx.fill();ctx.fillStyle='#040010';ctx.fillRect(tx-s*.18,ty-s*.38,s*.36,s*.38);ctx.beginPath();ctx.arc(tx,ty-s*.38,s*.18,Math.PI,0);ctx.fill()};
+  tent(x-82,g,52,'#180650');tent(x+6,g,68,'#21086A');tent(x+88,g,44,'#14044A');
+  ctx.fillStyle='#FF6B35';ctx.fillRect(x+34,g-18,8,18);ctx.fillRect(x+30,g-24,14,8);
+  ctx.fillStyle='#FFD060';ctx.fillRect(x+32,g-30,10,8);
+  ctx.save();ctx.globalAlpha=.2;const fg=ctx.createRadialGradient(x+38,g-10,0,x+38,g-10,42);fg.addColorStop(0,'rgba(255,107,53,1)');fg.addColorStop(1,'transparent');ctx.fillStyle=fg;ctx.fillRect(x-4,g-55,90,65);ctx.restore();
+}
+function drawTower(ctx,x,y){
+  if(x<-200||x>W+200)return;
+  const g=y;
+  ctx.fillStyle='#0E0335';ctx.fillRect(x-27,g-232,54,232);ctx.fillRect(x-21,g-262,42,32);ctx.fillRect(x-14,g-286,28,26);
+  ctx.fillStyle='#0A0225';ctx.beginPath();ctx.moveTo(x,g-336);ctx.lineTo(x-14,g-286);ctx.lineTo(x+14,g-286);ctx.fill();
+  [[g-185,'rgba(200,125,255,.96)'],[g-128,'rgba(139,56,245,.96)'],[g-72,'rgba(170,82,255,.96)']].forEach(([oy,c])=>{
+    ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,oy,9.5,0,Math.PI*2);ctx.fill();
+    ctx.save();ctx.globalAlpha=.28;const og=ctx.createRadialGradient(x,oy,0,x,oy,38);og.addColorStop(0,c);og.addColorStop(1,'transparent');ctx.fillStyle=og;ctx.fillRect(x-38,oy-38,76,76);ctx.restore();
+  });
+  ctx.fillStyle='#FFD060';ctx.beginPath();ctx.arc(x,g-336,7.5,0,Math.PI*2);ctx.fill();
+  ctx.save();ctx.globalAlpha=.5;const sg=ctx.createRadialGradient(x,g-336,0,x,g-336,34);sg.addColorStop(0,'rgba(255,208,96,1)');sg.addColorStop(1,'transparent');ctx.fillStyle=sg;ctx.fillRect(x-34,g-372,68,72);ctx.restore();
+}
+function drawWorkshop(ctx,x,y){
+  if(x<-260||x>W+260)return;
+  const g=y;
+  ctx.fillStyle='#0C0225';ctx.fillRect(x-80,g-90,160,90);
+  ctx.beginPath();ctx.moveTo(x-90,g-90);ctx.lineTo(x,g-132);ctx.lineTo(x+90,g-90);ctx.fill();
+  ctx.fillStyle='#07011A';ctx.fillRect(x+30,g-152,18,64);ctx.fillRect(x+26,g-160,26,10);
+  ctx.save();ctx.globalAlpha=.13;for(let i=0;i<5;i++){ctx.fillStyle='#9B60FF';ctx.beginPath();ctx.arc(x+39,g-168-i*17,6+i*3.2,0,Math.PI*2);ctx.fill()}ctx.restore();
+  ctx.fillStyle='rgba(96,175,255,.72)';ctx.fillRect(x-54,g-72,28,24);ctx.fillRect(x-13,g-72,28,24);ctx.fillRect(x+26,g-72,28,24);
+  const wh=(wx,wy)=>{ctx.save();ctx.globalAlpha=.16;const wg=ctx.createRadialGradient(wx,wy,0,wx,wy,22);wg.addColorStop(0,'rgba(96,175,255,1)');wg.addColorStop(1,'transparent');ctx.fillStyle=wg;ctx.fillRect(wx-22,wy-22,44,44);ctx.restore()};
+  wh(x-40,g-60);wh(x+1,g-60);wh(x+40,g-60);
+  ctx.fillStyle='#040010';ctx.fillRect(x-14,g-36,28,36);ctx.beginPath();ctx.arc(x,g-36,14,Math.PI,0);ctx.fill();
+  ctx.fillStyle='#180650';ctx.fillRect(x-30,g-116,60,18);ctx.fillStyle='rgba(200,125,255,.8)';ctx.fillRect(x-22,g-112,44,10);
+}
+function drawGate(ctx,x,y){
+  if(x<-220||x>W+220)return;
+  const g=y;
+  ctx.fillStyle='#100338';ctx.fillRect(x-90,g-140,36,140);ctx.fillRect(x+54,g-140,36,140);ctx.fillRect(x-90,g-148,180,22);
+  ctx.beginPath();ctx.arc(x,g-148,88,Math.PI,0);ctx.lineWidth=22;ctx.strokeStyle='#100338';ctx.stroke();ctx.lineWidth=1;
+  ctx.fillStyle='rgba(107,37,224,.08)';ctx.fillRect(x-54,g-148,108,148);
+  const rune=(rx,ry)=>{ctx.fillStyle='rgba(170,82,255,.9)';ctx.fillRect(rx-4,ry-18,8,18);ctx.fillRect(rx-8,ry-18,18,8);ctx.fillRect(rx-8,ry-10,8,8);ctx.save();ctx.globalAlpha=.28;const rg=ctx.createRadialGradient(rx,ry-9,0,rx,ry-9,26);rg.addColorStop(0,'rgba(170,82,255,1)');rg.addColorStop(1,'transparent');ctx.fillStyle=rg;ctx.fillRect(rx-26,ry-36,52,52);ctx.restore()};
+  rune(x-72,g-72);rune(x-72,g-114);rune(x+72,g-72);rune(x+72,g-114);
+  ctx.save();ctx.globalAlpha=.10;const pg=ctx.createRadialGradient(x,g-74,0,x,g-74,80);pg.addColorStop(0,'rgba(107,37,224,1)');pg.addColorStop(1,'transparent');ctx.fillStyle=pg;ctx.fillRect(x-80,g-154,160,154);ctx.restore();
+  ctx.fillStyle='#FFD060';ctx.beginPath();ctx.arc(x,g-148,11,0,Math.PI*2);ctx.fill();
+  ctx.save();ctx.globalAlpha=.55;const ks=ctx.createRadialGradient(x,g-148,0,x,g-148,40);ks.addColorStop(0,'rgba(255,208,96,1)');ks.addColorStop(1,'transparent');ctx.fillStyle=ks;ctx.fillRect(x-40,g-190,80,80);ctx.restore();
+}
+const structDrawers={castle:drawCastle,camp:drawCamp,tower:drawTower,workshop:drawWorkshop,gate:drawGate};
+
+/* ── RENDER ── */
+let camX=0;
+function getCamX(){
+  const ms=document.getElementById('scroller').offsetHeight-window.innerHeight;
+  return Math.min(1,Math.max(0,window.scrollY/ms))*W*(NS-1);
+}
+function renderSky(){
+  SKY.clearRect(0,0,W,H);
+  const sg=SKY.createLinearGradient(0,0,0,GY);
+  sg.addColorStop(0,'#04010C');sg.addColorStop(.5,'#070220');sg.addColorStop(1,'#0C0332');
+  SKY.fillStyle=sg;SKY.fillRect(0,0,W,H);
+}
+function renderStars(cx,now){
+  STR.clearRect(0,0,W,H);
+  STARS.forEach(s=>{
+    const bx=((s.x-cx*.04)%W+W)%W;
+    const pulse=.5+.5*Math.sin(now*s.sp+s.ph);
+    STR.globalAlpha=(s.b*.7+pulse*.3)*.72;STR.fillStyle='#C0A8FF';
+    STR.beginPath();STR.arc(bx,s.y,s.r,0,Math.PI*2);STR.fill();
+  });
+  STR.globalAlpha=1;
+}
+function renderMountains(cx){
+  MTN.clearRect(0,0,W,H);
+  MTNS_BG.forEach(m=>drawMtn(MTN,m.wx-cx*.13,GY,m.w,m.h,'#0A021E',.92));
+  MTNS_MG.forEach(m=>drawMtn(MTN,m.wx-cx*.22,GY,m.w,m.h,'#070118',1));
+}
+function renderTreesBack(cx){
+  TB.clearRect(0,0,W,H);
+  TREES_BG.forEach(tr=>drawTree(TB,tr.wx-cx*.38,GY,tr.h,tr.w,.82,true));
+  STRUCTS.forEach(s=>structDrawers[s.t](TB,s.wx-cx*.53,GY));
+}
+function renderTreesFront(cx,now){
+  TF.clearRect(0,0,W,H);
+  TREES_FG.forEach(tr=>drawTree(TF,tr.wx-cx*.72,GY,tr.h,tr.w,.90,false));
+  FF.forEach(f=>{
+    const sx=f.wx-cx*.88;if(sx<-10||sx>W+10)return;
+    const pulse=.4+.6*Math.abs(Math.sin(now*f.sp+f.ph));
+    TF.save();TF.globalAlpha=pulse*.85;TF.fillStyle=`rgba(${f.col},.9)`;
+    TF.beginPath();TF.arc(sx,f.y,f.sz,0,Math.PI*2);TF.fill();
+    TF.globalAlpha=pulse*.22;const fg=TF.createRadialGradient(sx,f.y,0,sx,f.y,f.sz*4.5);
+    fg.addColorStop(0,`rgba(${f.col},.7)`);fg.addColorStop(1,'transparent');
+    TF.fillStyle=fg;TF.fillRect(sx-f.sz*5,f.y-f.sz*5,f.sz*10,f.sz*10);TF.restore();
+  });
+}
+function render(now){
+  renderSky();renderStars(camX,now*.001);renderMountains(camX);renderTreesBack(camX);renderTreesFront(camX,now*.001);
+}
+
+/* ── UI ── */
+const scene=document.getElementById('scene');
+const pgbar=document.getElementById('pgbar');
+const dots=[...document.querySelectorAll('.dot')];
+const nlinks=[...document.querySelectorAll('.nlink')];
+function updateUI(prog){
+  pgbar.style.width=(prog*100)+'%';
+  const cur=Math.round(prog*(NS-1));
+  dots.forEach((d,i)=>d.classList.toggle('act',i===cur));
+  nlinks.forEach((n,i)=>n.classList.toggle('act',i===cur));
+}
+function scrollToSection(idx){
+  const ms=document.getElementById('scroller').offsetHeight-window.innerHeight;
+  window.scrollTo({top:(idx/(NS-1))*ms,behavior:'smooth'});
+}
+dots.forEach(d=>d.addEventListener('click',()=>scrollToSection(+d.dataset.g)));
+nlinks.forEach(n=>n.addEventListener('click',()=>scrollToSection(+n.dataset.s)));
+
+/* ── CURSOR ── */
+const cur=document.getElementById('cur');
+let mx=W/2,my=H/2;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
+document.addEventListener('mouseleave',()=>{cur.style.display='none'});
+document.addEventListener('mouseenter',()=>{cur.style.display='block'});
+[...document.querySelectorAll('a,button,.dot,.nlink,.plan,.sc,.pillar')].forEach(el=>{
+  el.addEventListener('mouseenter',()=>cur.classList.add('big'));
+  el.addEventListener('mouseleave',()=>cur.classList.remove('big'));
+});
+
+/* ── LOOP ── */
+function loop(now){
+  camX+=(getCamX()-camX)*.08;
+  scene.style.transform=`translateX(${-camX}px)`;
+  updateUI(camX/(W*(NS-1)));
+  render(now);
+  cur.style.left=mx+'px';cur.style.top=my+'px';
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize',()=>window.location.reload());
+renderSky();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
